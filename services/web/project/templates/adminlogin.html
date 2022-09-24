@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Admin Signin</title>
+    <style>
+        #error {
+            color: red;
+        }
+        .hidden {
+            display: none;
+        }
+        body {
+            text-align: center;
+        }
+        form {
+            width: 50%;
+            margin: 150px auto 50px;
+        }
+        .margin-me {
+            margin: 35px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Admin Sign-in Form</h1>
+    <div>
+        <form id="login-admin" action="/admin/loginForm" method="POST">
+
+            <div class="margin-me">
+                <label for="admin-username">Username: </label>
+                <input type="text" name="admin-username" id="admin-username" required>
+            </div>
+            <div class="margin-me">
+                <label for="admin-pass">Password: </label>
+                <input type="password" name="admin-pass" id="admin-pass" required>
+            </div>
+
+            <input type="submit" value="Sign in">
+        </form>
+    </div>
+
+    <div id="error" class="hidden">
+        <p>
+            Oops! Something went wrong during register.
+        </p>
+    </div>
+
+    <script type="text/javascript">
+        document.getElementById("login-admin").onsubmit = function (e) {
+            e.preventDefault();
+            fetch("/admin/loginForm", {
+                method: "POST",
+                body: JSON.stringify({
+                    "username": document.getElementById("admin-username").value,
+                    "password": document.getElementById("admin-pass").value,
+                }),
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(function (response) {
+                if (response.status === 200) {
+                    return window.location.replace(response.url);
+                } else {
+                    return response.json();
+                }
+            })
+            .then(function (jsonResponse) {
+                if (typeof jsonResponse === "undefined") {
+                    return "OK";
+                } else if (jsonResponse.error === 401 || jsonResponse.error === 404) {
+                    alert("Incorrect username or password!");
+                } else if (jsonResponse.error === 400) {
+                    alert("All fields must be typed!");
+                } else if (jsonResponse.error === 405){
+                    alert("Invalid request type");
+                } else {
+                    alert("Internal Server Error");
+                }
+            })
+            .catch(function (error) {
+                document.getElementById("error").className = "";
+            });
+        }
+    </script>
+
+</body>
+
+</html>

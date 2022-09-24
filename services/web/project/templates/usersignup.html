@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>User Signup</title>
+    <style>
+        #error {
+            color: red;
+        }
+        .hidden {
+            display: none;
+        }
+        body {
+            text-align: center;
+        }
+        form {
+            width: 50%;
+            margin: 150px auto 50px;
+        }
+        .margin-me {
+            margin: 35px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>New User Registeration Form</h1>
+    <div>
+        <form id="register-user" action="/user/registerForm" method="POST">
+            <div class="margin-me">
+                <label for="user-name">Name: </label>
+                <input type="text" name="user-name" id="user-name" required>
+            </div>
+            <div class="margin-me">
+                <label for="user-email">Email: </label>
+                <input type="email" name="user-email" id="user-email" required>
+            </div>
+            <div class="margin-me">
+                <label for="user-pass">Password: </label>
+                <input type="password" name="user-pass" id="user-pass" required>
+            </div>
+
+            <input type="submit" value="Sign up">
+        </form>
+    </div>
+
+    <div id="error" class="hidden">
+        <p>
+            Oops! Something went wrong during register.
+        </p>
+    </div>
+
+    <script>
+
+        document.getElementById("register-user").onsubmit = function (e) {
+            e.preventDefault();
+
+            fetch('/user/registerForm', {
+                method: 'POST',
+                body: JSON.stringify({
+                    "name": document.getElementById("user-name").value,
+                    "email": document.getElementById("user-email").value,
+                    "password": document.getElementById("user-pass").value
+                }),
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(function (response) {
+                if (response.status === 200) {
+                    return window.location.replace(response.url);
+                } else {
+                    return response.json();
+                }
+            })
+            .then(function(jsonResponse) {
+                if (typeof jsonResponse === "undefined") {
+                    return "OK";
+                } else if (jsonResponse.error === 409) {
+                    alert("This email is already in use, please pick another one");
+                } else if (jsonResponse.error === 400) {
+                    alert("All fields must be typed!");
+                } else if (jsonResponse.error === 404 || jsonResponse.error === 500) {
+                    alert("We are experiencing some issues on the backend, please try again later");
+                } else if (jsonResponse.error === 405) {
+                    alert("Invalid request type")
+                }
+            })
+            .catch(function(error) {
+                document.getElementById("error").className = "";
+            });
+        }
+
+    </script>
+</body>
+
+</html>

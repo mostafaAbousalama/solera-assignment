@@ -92,27 +92,19 @@ def seed_db():
         plain_pass = user_dict.get('plaintext_password')
         b_pass = plain_pass.encode('utf-8')
         hashed_pass = bcrypt.hashpw(b_pass, salt)
-        new_user = User(name=user_dict.get('name'), email=user_dict.get('email'), hashed_password=hashed_pass, current_balance=user_dict.get('balance'), current_reading=user_dict.get('reading'))
+        hash_pass_decoded = hashed_pass.decode('utf-8')
+        new_user = User(name=user_dict.get('name'), email=user_dict.get('email'), hashed_password=hash_pass_decoded, current_balance=user_dict.get('balance'), current_reading=user_dict.get('reading'))
         db.session.add(new_user)
         db.session.commit()
 
     for admin_dict in admins_sample:
         salt = bcrypt.gensalt(13)
-        print(salt)
         plain_pass = admin_dict.get('plaintext_password')
-        print(plain_pass)
         b_pass = plain_pass.encode('utf-8')
-        print(b_pass)
         hashed_pass = bcrypt.hashpw(b_pass, salt)
-        print(hashed_pass)
         hash_pass_decoded = hashed_pass.decode('utf-8')
-        print(hash_pass_decoded)
         new_admin = Admin(username=admin_dict.get('username'), hashed_password=hash_pass_decoded)
         db.session.add(new_admin)
         db.session.commit()
 
 seed_db()
-
-hp = Admin.query.filter_by(username = 'Admin2').first().hashed_password
-print(hp)
-print(hp.encode('utf-8'))
