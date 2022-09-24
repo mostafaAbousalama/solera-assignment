@@ -1,0 +1,46 @@
+# BUILDER
+
+# pull official base image
+FROM python:3.10.6-slim as builder
+
+# set work directory
+WORKDIR /usr/src/app
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# install python dependencies
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+
+COPY . /usr/src/app/
+
+# FINAL
+
+# pull official base image
+FROM python:3.10.6-slim
+
+# create directory for the app user
+RUN mkdir -p /home/app/web
+
+# create the app user
+RUN addgroup --system app && adduser --system --group app
+
+WORKDIR /home/app/web
+
+# install dependencies
+COPY --from=builder /usr/src/app/wheels /wheels
+COPY --from=builder /usr/src/app/requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache /wheels/*
+
+# copy project
+COPY . /home/app/web
+
+# chown all the files to the app user
+RUN chown -R app:app /home/app/web
+
+# change to the app user
+USER app
