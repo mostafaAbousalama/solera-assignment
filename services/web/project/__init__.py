@@ -3,6 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from werkzeug.exceptions import HTTPException
 
+# I will use this to verify that my load balancer Nginx conf is indeed working
+import socket
+
 import datetime
 import bcrypt
 
@@ -51,6 +54,9 @@ def index():
 
 @app.route("/user/<user_id>")
 def display_user_data(user_id):
+    #gethostname() will retrieve for us the container id of the replica web service that simulates load balancing of nginx
+    #I will use that in the front end to check that load balancing is working
+    container_id = socket.gethostname()
     try:
         user_data = User.query.filter_by(id=user_id).one_or_none()
         #If user does not exist in database
@@ -62,9 +68,9 @@ def display_user_data(user_id):
         elif session["user_email"] != user_data.email:
             session["user_email"] = None
             session["admin_id"] = None
-            return redirect(url_for("signin_user"), 302)
+            return redirect(url_for("signin_user"))
         else:
-            return render_template("usertable.html", userData=user_data)
+            return render_template("usertable.html", userData=user_data, cid=container_id)
     except Exception as e:
         db.session.rollback()
         if isinstance(e, HTTPException):
@@ -77,24 +83,29 @@ def display_user_data(user_id):
 
 @app.route("/admin/<admin_id>")
 def display_admin_panel(admin_id):
+    container_id = socket.gethostname()
     try:
         admin = Admin.query.filter_by(id=admin_id).one_or_none()
         if admin is None:
             session["user_email"] = None
             session["admin_id"] = None
+            print("none")
             abort(404)
             # Again for potential bad actors
         elif session["admin_id"] != admin.id:
             session["user_email"] = None
             session["admin_id"] = None
-            return redirect(url_for("signin_admin"), 302)
+            print("bad actor")
+            return redirect(url_for("signin_admin"))
         else:
             users = User.query.all()
             sum = 0
             for u in users:
                 sum += u.current_balance
                 users_number = User.query.count()
-            return render_template("admintable.html", adminData=Admin.query.filter_by(id=admin_id).first(), sum=sum, users_number=users_number)
+            print("about to render")
+            print(session["admin_id"])
+            return render_template("admintable.html", adminData=Admin.query.filter_by(id=admin_id).first(), sum=sum, users_number=users_number, cid=container_id)
     except Exception as e:
         db.session.rollback()
         if isinstance(e, HTTPException):
@@ -107,18 +118,20 @@ def display_admin_panel(admin_id):
 
 @app.route("/user/register")
 def register_user():
+    container_id = socket.gethostname()
     #   Precautionary session reset at attempt of new account sign up
     session["user_email"] = None
     session["admin_id"] = None
-    return render_template("usersignup.html")
+    return render_template("usersignup.html", cid=container_id)
 
 
 @app.route("/admin/register")
 def register_admin():
+    container_id = socket.gethostname()
     #   Same precaution as with user sign up
     session["user_email"] = None
     session["admin_id"] = None
-    return render_template("adminsignup.html")
+    return render_template("adminsignup.html", cid=container_id)
 
 
 @app.route("/user/registerForm", methods=["POST"])
@@ -162,7 +175,7 @@ def register_user_form():
         if new_user_id:
             session["user_email"] = new_user_id.email
             session["admin_id"] = None
-            return redirect(url_for("display_user_data", user_id=new_user_id.id), 302)
+            return redirect(url_for("display_user_data", user_id=new_user_id.id))
         else:
             #   If for some reason, we failed to finde the new user in db, for later debug
             abort(404)
@@ -202,7 +215,7 @@ def register_admin_form():
         if new_admin_id:
             session["user_email"] = None
             session["admin_id"] = new_admin_id.id
-            return redirect(url_for("display_admin_panel", admin_id=new_admin_id.id), 302)
+            return redirect(url_for("display_admin_panel", admin_id=new_admin_id.id))
         else:
             abort(404)
     finally:
@@ -211,17 +224,19 @@ def register_admin_form():
 
 @app.route("/user/login")
 def signin_user():
+    container_id = socket.gethostname()
     #   Ensure new session on load up of sign-in page
     session["user_email"] = None
     session["admin_id"] = None
-    return render_template("userlogin.html")
+    return render_template("userlogin.html", cid=container_id)
 
 
 @app.route("/admin/login")
 def signin_admin():
+    container_id = socket.gethostname()
     session["user_email"] = None
     session["admin_id"] = None
-    return render_template("adminlogin.html")
+    return render_template("adminlogin.html", cid=container_id)
 
 
 @app.route("/user/loginForm", methods=["POST"])
@@ -245,7 +260,7 @@ def signin_user_form():
                     session["admin_id"] = None
                     check_user.last_login = datetime.datetime.now()
                     db.session.commit()
-                    return redirect(url_for("display_user_data", user_id=check_user.id), 302)
+                    return redirect(url_for("display_user_data", user_id=check_user.id))
                 #   If incorrect password submitted, unauthorized access abort.
                 else:
                     abort(401)
@@ -266,6 +281,7 @@ def signin_admin_form():
     try:
         if request.method == "POST":
             request_body = request.get_json()
+            print(request_body)
             if request_body["username"] == "" or request_body["password"] == "":
                 abort(400)
             check_admin = Admin.query.filter_by(username=request_body["username"]).one_or_none()
@@ -279,14 +295,17 @@ def signin_admin_form():
                     session["user_email"] = None
                     session["admin_id"] = check_admin.id
                     check_admin.last_login = datetime.datetime.now()
+                    print("before commit")
                     db.session.commit()
-                    return redirect(url_for("display_admin_panel", admin_id=check_admin.id), 302)
+                    print("commit success")
+                    return redirect(url_for("display_admin_panel", admin_id=check_admin.id))
                 else:
                     abort(401)
         else:
             abort(405)
     except Exception as e:
         db.session.rollback()
+        print("rollback done")
         if isinstance(e, HTTPException):
             abort(e.code)
         else:
@@ -304,7 +323,7 @@ def logout_user():
                 abort(404)
             session["user_email"] = None
             session["admin_id"] = None
-            return redirect(url_for("index"), 302)
+            return redirect(url_for("index"))
         else:
             abort(405)
     except:
@@ -322,7 +341,7 @@ def logout_admin():
                 abort(404)
             session["user_email"] = None
             session["admin_id"] = None
-            return redirect(url_for("signin_admin"), 302)
+            return redirect(url_for("signin_admin"))
         else:
             abort(405)
     except:
