@@ -1,1 +1,4 @@
-services/web/flask_session/
+postgres_data
+services/web/flask_session
+services/web/env
+services/web/project/__pycache__
