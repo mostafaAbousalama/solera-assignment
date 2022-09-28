@@ -28,7 +28,7 @@ The API will return these error types:
 - 400: Bad request
 - 401: Unauthorized
 - 404: Not found
-- 405: Method nopt allowed
+- 405: Method not allowed
 - 409: User already exist
 - 422: Unprocessable
 - 500: Internal server error
@@ -82,5 +82,5 @@ Similarly as with the development setup, after you cd into the project root you 
 - `$ docker-compose -f docker-compose.prod.yml down -v`
 
 [^1]: If you are using Git Bash on windows, it will throw an error with this command, requesting that you prepend the command `winpty` at the beginning like so `$ winpty docker-compose -f docker-compose.yml exec web python configdb.py`
-[^2]: There is a limitation to using the free tier of nginx when configuring it as load balancer, as it can not presist sessions without using sticky cookies, which are limited only to nginx plus, a paid service. The only workaround this is by using either the `ip_hash` or `hash $special_key` to persist the session and maintain the connection to the same web app instance. The downside to using this is that it limits your connection to one web instance and the load balance will never direct you request to the other instance unless the first is down or in maintenance, meaning we can not simulate or test this particular load balance configuration unless we host the entire project on the cloud and start using it through different ips or devices on different network  
+[^2]: There is a limitation to using the free tier of nginx when configuring it as load balancer, as it can not persist sessions without using sticky cookies, which are limited only to nginx plus, a paid service. The only workaround this is by using either the `ip_hash` or `hash $special_key` to persist the session and maintain the connection to the same web app instance. The downside to using this is that it limits your connection to one web instance and the load balance will never direct you request to the other instance unless the first is down or in maintenance, meaning we can not simulate or test this particular load balance configuration unless we host the entire project on the cloud and start using it through different IPs or devices on different network  
 
